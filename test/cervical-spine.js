@@ -1,30 +1,26 @@
-var Spinal = require('../').Node;
-var Broker = require('../').Broker;
+var Spinal = require('../').Node
+var Broker = require('../').Broker
+var fs = require('fs')
 
-describe('Node', function() {
-  var broker = null
+describe('CervicalSpine', function(){
   var spinal = null
-  before(function(done){
-    broker = new Broker()
-    broker.start(done)
-  })
   beforeEach(function(done){
     spinal = new Spinal('spinal://127.0.0.1:7557', {
-      namespace: 'bunny_node', heartbeat_interval: 500
+      namespace: 'nock_node'
     })
     done()
   })
   afterEach(function(done){ spinal.stop(done) })
-  after(function(done){ broker.stop(done) })
-
   describe('Structure', function() {
     it('Bind specific port', function(done) {
       var spinal = new Spinal('spinal://127.0.0.1:7557', {
         namespace: 'bunny_test_port', heartbeat_interval: 500, port: 7558
       })
       spinal.start(function(){
-        expect(spinal.server.sock.address().port).to.equal(7558)
-        done()
+        expect(spinal.server.address().port).to.equal(7558)
+        spinal.stop(function() {
+          done()
+        })
       })
     })
 
@@ -35,13 +31,13 @@ describe('Node', function() {
     it('Should throw error when init Spinal without options.namespace', function() {
       expect(function(){new Spinal('spinal://127.0.0.1:7557')}).to.throw(/options.namespace/)
     })
-
+    
     it('Should throw error when init Spinal with reserved namespace', function() {
       expect(function(){
         new Spinal('spinal://127.0.0.1:7557', {namespace: 'broker'})
       }).to.throw(/broker/)
     })
-
+    
     it('Should start with namespace', function() {
       var spinal = new Spinal('spinal://127.0.0.1:7557', {
         namespace: 'bunny_with_namespace', heartbeat_interval: 500
@@ -54,13 +50,13 @@ describe('Node', function() {
       expect(spinal._methods.jump).to.be.a('function')
       assert.isFunction(spinal._methods.jump)
     })
-
+    
     it('Should throw error when pass non function when provide', function() {
       expect(function(){
         spinal.provide('jump', 'String' )
       }).to.throw(/function/)
     })
-
+    
     it('Should throw error when add a duplicate method name', function() {
       spinal.provide('jump', function(){} )
       expect(spinal._methods.jump).to.be.a('function')
@@ -77,11 +73,11 @@ describe('Node', function() {
         done()
       })
     })
-
+    
     it('Should removed method', function() {
       spinal.provide('jump', function(){} )
       expect(spinal._methods.jump).to.be.a('function')
-      expect(spinal.unprovide('jump', function(){})).to.be.true
+      expect(spinal.unprovide('jump')).to.be.true
       expect(spinal._methods.jump).to.not.a('function')
     })
 
@@ -101,78 +97,10 @@ describe('Node', function() {
       expect(spinal.config.key3).to.be.undefined
     })
   })
-
   describe('Connection', function() {
-    it('After start() should send handshake to broker', function(done) {
-      var spinal = new Spinal('spinal://127.0.0.1:37557', {namespace: 'bunny', heartbeat_interval: 200})
-      var broker = new Broker()
-      broker.once('handshake', function(node){
-        expect(node.id).to.equal(spinal.id)
-        expect(node.namespace).to.equal(spinal.namespace)
-      })
-      broker.start(37557, function(){
-        spinal.provide('ping', function(){})
-        spinal.start(function(){
-          expect(broker.router.nodes[spinal.id]).to.be.a('object')
-          spinal.stop(function(){
-            broker.stop(function(){
-              done()
-            })
-          })
-        })
-      })
-    })
-
-    it('Should auto reconnect when lost connection from a broker', function(done) {
-      var broker = new Broker()
-      broker.start(37557, function(){
-        var spinal = new Spinal('spinal://127.0.0.1:37557', {namespace: 'bunny', heartbeat_interval: 200})
-        spinal.start(function(){
-          broker.stop()
-          setTimeout(function(){
-            expect(spinal.stats.reconnected).to.be.above(0)
-            spinal.stop(done)
-          }, 400)
-        })
-      })
-    })
-
-    it('Should always send handshake even reconnect', function(done) {
-      var broker = new Broker()
-      var count = 0
-      broker.on('handshake', function(node){
-        count++
-        if(count == 2) {
-          spinal.stop(function(){
-            broker.stop(done)
-          })
-        }
-      })
-      broker.start(37557, function(){
-        var spinal = new Spinal('spinal://127.0.0.1:37557', {namespace: 'bunny', heartbeat_interval: 200})
-        spinal.start(function(){
-          broker.stop(function(){
-            broker.start(37557)
-          })
-        })
-      })
-    })
-
-    it('Namespace start with $ should be invisible from nodes list', function(done) {
-      var spinal = new Spinal('spinal://127.0.0.1:7557',
-        {namespace: '$cli', heartbeat_interval: 200}
-      )
-      spinal.start(function(){
-        expect(broker.router.nodes).to.not.include.keys(spinal.id)
-        spinal.stop(done)
-      })
-    })
-
     it('After called start() all sockets should be ready', function(done) {
       spinal.start(function(){
-        expect(spinal.client.sock.connected).to.be.true
-        expect(spinal.client.sock.type).to.equal('client')
-        expect(spinal.server.sock.type).to.equal('server')
+        expect(spinal.connected).to.be.true
         done()
       })
     })
@@ -180,9 +108,7 @@ describe('Node', function() {
     it('Multple called start() should be fine', function(done) {
       spinal.start(function(){
         spinal.start(function(){
-          expect(spinal.client.sock.connected).to.be.true
-          expect(spinal.client.sock.type).to.equal('client')
-          expect(spinal.server.sock.type).to.equal('server')
+          expect(spinal.connected).to.be.true
           done()
         })
       })
@@ -194,15 +120,10 @@ describe('Node', function() {
       })
       spinal.start(function(){
         expect(spinal.connected).to.be.true
-        expect(spinal.client.sock.connected).to.be.true
-        expect(spinal.client.sock.type).to.equal('client')
-        expect(spinal.server.sock.type).to.equal('server')
         spinal.stop(function(){
           expect(spinal.connected).to.be.false
-          expect(spinal.client.sock.connected).to.be.true
           spinal.start(function(){
             expect(spinal.connected).to.be.true
-            expect(spinal.client.sock.connected).to.be.true
             spinal.call('test', function(err, result){
               expect(result).to.equal('ok')
               done()
@@ -213,22 +134,11 @@ describe('Node', function() {
     })
 
     it('After called stop() all sockets should close correctly', function(done) {
-      spinal.stop(function(){
-        expect(spinal.client.sock.socks).to.have.length(0)
-        expect(spinal.server.sock.socks).to.have.length(0)
-        done()
-      })
-    })
-
-    it('Should able to stop() even a node cannot send `_bye` message to a broker', function(done) {
-      var broker = new Broker()
-      broker.start(37557, function(){
-        var spinal = new Spinal('spinal://127.0.0.1:37557', {namespace: 'bunny', heartbeat_interval: 200})
-        spinal.start(function(){
-          broker.server.sock.close()
-          spinal.stop(function(){
-            expect(spinal.server.sock.closing).to.be.true
-            expect(spinal.client.sock.socks).to.have.length(0)
+      spinal.start(function(){
+        spinal.stop(function(){
+          spinal.server.getConnections(function(err, count) {
+            if (err) done(err)
+              expect(count).to.equal(0)
             done()
           })
         })
@@ -261,7 +171,7 @@ describe('Node', function() {
         })
       })
     })
-
+    
     it('Should send data thru res.send', function(done) {
       spinal.provide('jump', function(arg, res){
         assert.isFunction(res.send)
@@ -282,7 +192,7 @@ describe('Node', function() {
         res.error('Error message')
       })
       spinal.start(function(){
-        spinal.call('jump', 'ok', function(err, data) {
+        var a = spinal.call('jump', 'ok', function(err, data) {
           assert.isNotNull(err)
           assert.equal(err.message, 'Error message');
           done()
@@ -296,7 +206,7 @@ describe('Node', function() {
         res.error(new Error('Error message'))
       })
       spinal.start(function(){
-        spinal.call('jump', 'ok', function(err, data) {
+        var a = spinal.call('jump', 'ok', function(err, data) {
           assert.isNotNull(err)
           assert.equal(err.message, 'Error message');
           done()
@@ -316,7 +226,7 @@ describe('Node', function() {
         })
       })
     })
-
+    
     it('Should not error when response empty', function(done) {
       spinal.provide('jump', function(arg, res){
         res()
@@ -329,7 +239,7 @@ describe('Node', function() {
         })
       })
     })
-
+    
     it('Should not error when response undefined first parameter',
     function(done) {
       spinal.provide('jump', function(arg, res){
@@ -356,9 +266,7 @@ describe('Node', function() {
         })
       })
     })
-
   })
-
   describe('Call', function() {
     it('Should return promise', function(done){
       spinal.provide('jump', function(arg, res){ res.send(arg) })
@@ -452,10 +360,10 @@ describe('Node', function() {
         })
       })
     })
-
+    
     it('Should call method between two node', function(done) {
       this.timeout(1500);
-      var dogSpinal = new Spinal('spinal://127.0.0.1:7557', {
+      var dogSpinal = new Spinal('spinal://127.0.0.1:7558', {
         namespace: 'dog', heartbeat_interval: 500
       })
 
@@ -463,7 +371,7 @@ describe('Node', function() {
         res.send(name + ' is howl')
       })
 
-      var catSpinal = new Spinal('spinal://127.0.0.1:7557', {
+      var catSpinal = new Spinal('spinal://127.0.0.1:7559', {
         namespace: 'cat', heartbeat_interval: 500
       })
 
@@ -473,10 +381,10 @@ describe('Node', function() {
 
       dogSpinal.start(function() {
         catSpinal.start(function() {
-          catSpinal.call('dog.howl', 'John', function(err, msg) {
+          catSpinal.call('dog.howl', 'John', {port: 7558}, function(err, msg) {
             assert.isNull(err)
             assert.equal(msg, 'John is howl')
-            dogSpinal.call('cat.meaw', 'Jane', function(err, msg) {
+            dogSpinal.call('cat.meaw', 'Jane', {port: 7559}, function(err, msg) {
             assert.isNull(err)
             assert.equal(msg, 'Jane is meaw')
               dogSpinal.stop()
@@ -489,7 +397,7 @@ describe('Node', function() {
     })
 
     it('Should end call after client call timeout.', function(done){
-      var spinal2 = new Spinal('spinal://127.0.0.1:7557', {
+      var spinal2 = new Spinal('spinal://127.0.0.1:7558', {
         namespace: 'bunny_dummy', heartbeat_interval: 500
       })
 
@@ -500,7 +408,7 @@ describe('Node', function() {
       spinal2.start(function(){
         spinal.start(function(){
           spinal.set('callTimeout', 200)
-          spinal.call('bunny_dummy.foo', null, {}, function(err, res){
+          spinal.call('bunny_dummy.foo', null, {port:7558}, function(err, res){
             expect(err.message).to.match(/timeout/i)
             expect(err.message).to.match(/200ms/i)
             spinal.stop(function(){
@@ -511,8 +419,8 @@ describe('Node', function() {
       })
     })
 
-    it('Should end call after client custom call timeout.', function(){
-      var spinal2 = new Spinal('spinal://127.0.0.1:7557', {
+    it('Should end call after client custom call timeout.', function(done){
+      var spinal2 = new Spinal('spinal://127.0.0.1:7558', {
         namespace: 'bunny_dummy', heartbeat_interval: 500
       })
 
@@ -523,7 +431,7 @@ describe('Node', function() {
       spinal2.start(function(){
         spinal.start(function(){
           spinal.set('callTimeout', 200)
-          spinal.call('bunny_dummy.foo', null, {timeout: 300}, function(err, res){
+          spinal.call('bunny_dummy.foo', null, {timeout: 300, port:7558}, function(err, res){
             expect(err.message).to.match(/timeout/i)
             expect(err.message).to.match(/300ms/i)
             spinal.stop(function(){
@@ -533,9 +441,7 @@ describe('Node', function() {
         })
       })
     })
-
   })
-
 
   describe('Event', function() {
     it('ready', function(done) {
@@ -581,8 +487,6 @@ describe('Node', function() {
       })
     })
   })
-
-
   describe('Internal Call', function() {
     it('ping()', function(done){
       spinal.start(function(){
@@ -594,9 +498,4 @@ describe('Node', function() {
       })
     })
   })
-
-  // it.skip('Should get error after call not exitst method (external)', function() {} )
-  // it.skip('Should auto reconnect and resume a call after connection lost', function() {} )
-
-
-});
+})

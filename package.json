@@ -7,8 +7,12 @@
   "author": "Panjamapong Sermsawatsri <panjmp@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "axios": "^0.16.2",
+    "body-parser": "^1.18.0",
+    "debug": "^3.0.1",
     "express": "^4.15.4",
-    "ioredis": "^3.1.4"
+    "ioredis": "^3.1.4",
+    "puid": "^1.0.7"
   },
   "devDependencies": {
     "chai": "^4.1.2",

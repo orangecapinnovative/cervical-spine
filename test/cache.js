@@ -1,19 +1,12 @@
 var Spinal = require('../').Node;
-var Broker = require('../').Broker;
 
 describe('Cache', function() {
-  var broker = null
   var spinal = null
   beforeEach(function(done){
-    broker = new Broker({redis: 6379})
-    broker.start(done)
-  })
-  beforeEach(function(done){
-    spinal = new Spinal('spinal://127.0.0.1:7557', { namespace: 'bunny' })
+    spinal = new Spinal('spinal://127.0.0.1:7557', { namespace: 'bunny', redis: 6379 })
     done()
   })
   afterEach(function(done){ spinal.stop(done) })
-  afterEach(function(done){ broker.stop(done) })
 
 
   it('Call method first time should return fresh', function(done) {
@@ -26,6 +19,7 @@ describe('Cache', function() {
         assert.isNull(err)
         assert.equal(data, 'ok')
         assert.isUndefined(header.from_cache)
+        expect(header.cache_id).to.equal('KEY')
         done()
       })
     })
