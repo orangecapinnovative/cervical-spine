@@ -12,4 +12,10 @@ No change in code is needed. Just replace your spinal library in `package.json` 
 ...
 ```
 
-Currently, the library is under development. Planned supported features will not include job queue.
+## How it works
+
+Cervical Spine has same API calls with Spinal. For example, when you call `user.get` with an argument `{"id":"1"}` it will send a HTTP POST request to `http://user:7557/` with data `{"name":"get","data":{"id":1}}`.
+
+You can also specify host prefix and suffix by assigning env variable `SPINAL_HOSTNAME_PREFIX` and `SPINAL_HOSTNAME_SUFFIX`. Alternatively passing an option `hostname_prefix` and `hostname_prefix` when initializing a spinal node. For example, having `SPINAL_HOSTNAME_PREFIX=production- SPINAL_HOSTNAME_SUFFIX=-service` will make a call to `http://production-user-service:7557/`
+
+Caching still works by passing `redis` options at node initialization instead of broker in Spinal.
