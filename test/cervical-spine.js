@@ -6,7 +6,11 @@ describe('CervicalSpine', function(){
   var spinal = null
   beforeEach(function(done){
     spinal = new Spinal('spinal://127.0.0.1:7557', {
-      namespace: 'nock_node'
+      namespace: 'nock_node',
+      port_map: {
+        nock_node: 7557,
+        bunny: 7658,
+      }
     })
     done()
   })
@@ -493,6 +497,29 @@ describe('CervicalSpine', function(){
         spinal.ping(function(err, data){
           assert.isNull(err)
           assert.equal(data, 'pong')
+          done()
+        })
+      })
+    })
+  })
+  describe.only('Port Map', function() {
+    it('works', function(done) {
+      var spinalBunny = new Spinal('spinal://127.0.0.1:7557', {
+        namespace: 'bunny',
+        port_map: {
+          nock_node: 7557,
+          bunny: 7658,
+        }
+      })
+      spinalBunny.provide('foo', function(err, res){
+        setTimeout(function(){ res.send("bar") }, 1000)
+      })
+      spinalBunny.start(function() {
+        expect(spinal.port).to.equal(7557)
+        expect(spinalBunny.port).to.equal(7658)
+        spinal.call('bunny.foo', function(err, data) {
+          expect(err).to.not.exist
+          expect(data).to.equal('bar')
           done()
         })
       })
