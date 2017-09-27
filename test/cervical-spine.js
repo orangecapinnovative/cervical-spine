@@ -502,7 +502,7 @@ describe('CervicalSpine', function(){
       })
     })
   })
-  describe.only('Port Map', function() {
+  describe('Port Map', function() {
     it('works', function(done) {
       var spinalBunny = new Spinal('spinal://127.0.0.1:7557', {
         namespace: 'bunny',
@@ -518,6 +518,25 @@ describe('CervicalSpine', function(){
         expect(spinal.port).to.equal(7557)
         expect(spinalBunny.port).to.equal(7658)
         spinal.call('bunny.foo', function(err, data) {
+          expect(err).to.not.exist
+          expect(data).to.equal('bar')
+          spinalBunny.stop(done)
+        })
+      })
+    })
+    it('works when calling same service', function(done) {
+      var spinalBunny = new Spinal('spinal://127.0.0.1:7557', {
+        namespace: 'bunny',
+        port_map: {
+          nock_node: 7557,
+          bunny: 7658,
+        }
+      })
+      spinalBunny.provide('foo', function(err, res){
+        setTimeout(function(){ res.send("bar") }, 1000)
+      })
+      spinalBunny.start(function() {
+        spinalBunny.call('foo', function(err, data) {
           expect(err).to.not.exist
           expect(data).to.equal('bar')
           done()

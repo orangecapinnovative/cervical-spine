@@ -1,6 +1,6 @@
 {
   "name": "cervical-spine",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A seamless port from Spinal broker architecture to broker-less DNS-based microservice architecture",
   "main": "index.js",
   "repository": "https://github.com/takemetour/cervical-spine.git",
