@@ -9,6 +9,9 @@
   "bin": {
     "cervical-spine": "./bin/cervical-spine"
   },
+  "scripts": {
+    "test": "npx mocha test"
+  },
   "dependencies": {
     "axios": "^0.16.2",
     "body-parser": "^1.18.0",

@@ -140,11 +140,8 @@ describe('CervicalSpine', function(){
     it('After called stop() all sockets should close correctly', function(done) {
       spinal.start(function(){
         spinal.stop(function(){
-          spinal.server.getConnections(function(err, count) {
-            if (err) done(err)
-              expect(count).to.equal(0)
-            done()
-          })
+          expect(spinal.server).to.be.null
+          done()
         })
       })
     })
