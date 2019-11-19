@@ -215,6 +215,41 @@ describe('CervicalSpine', function(){
       })
     })
 
+    it('Should send error thru res.error (with Error object that include a key "type")', function(done) {
+      spinal.provide('jump', function(arg, res){
+        assert.isFunction(res.error)
+        var error = new Error('Error message')
+        error.type = 'Type'
+        console.log(error);
+        res.error(error)
+      })
+      spinal.start(function(){
+        var a = spinal.call('jump', 'ok', function(err, data) {
+          assert.isNotNull(err)
+          assert.equal(err.message, 'Error message');
+          assert.equal(err.type, 'Type');
+          done()
+        })
+      })
+    })
+
+    it('Should send error thru res.error (with Error object that include a key "source")', function(done) {
+      spinal.provide('jump', function(arg, res){
+        assert.isFunction(res.error)
+        var error = new Error('Error message')
+        error.source = 'Source'
+        res.error(error)
+      })
+      spinal.start(function(){
+        var a = spinal.call('jump', 'ok', function(err, data) {
+          assert.isNotNull(err)
+          assert.equal(err.message, 'Error message');
+          assert.equal(err.source, 'Source');
+          done()
+        })
+      })
+    })
+
     it('Should not error when response `undefined`', function(done) {
       spinal.provide('jump', function(arg, res){
         res(null, undefined)
