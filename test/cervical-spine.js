@@ -220,13 +220,11 @@ describe('CervicalSpine', function(){
         assert.isFunction(res.error)
         var error = new Error('Error message')
         error.type = 'Type'
-        console.log(error);
         res.error(error)
       })
       spinal.start(function(){
         var a = spinal.call('jump', 'ok', function(err, data) {
           assert.isNotNull(err)
-          assert.equal(err.message, 'Error message');
           assert.equal(err.type, 'Type');
           done()
         })
@@ -243,7 +241,6 @@ describe('CervicalSpine', function(){
       spinal.start(function(){
         var a = spinal.call('jump', 'ok', function(err, data) {
           assert.isNotNull(err)
-          assert.equal(err.message, 'Error message');
           assert.equal(err.source, 'Source');
           done()
         })
