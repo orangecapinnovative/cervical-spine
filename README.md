@@ -32,3 +32,140 @@ Unlike broker-based approach, this approach introduce new challenge, that is loc
   })
 ```
 When running with `NODE_ENV=development`, port map will be used. Each service will create a HTTP server using thier port assigned in port map without colliding. Alternatively, an env variable of `SPINAL_PORT_MAP` can also be used (encoded in JSON format).
+
+# Cervical-Spine + Moleculer.js Integration Example
+
+This example demonstrates how to integrate **cervical-spine** (Express + cervical-spine) with **Moleculer.js** for cross-service communication.
+
+## Architecture
+
+- **Booking Service**: Express.js REST API + cervical-spine (Port 3000 REST, 7557 cervical-spine)
+- **Payment Service**: Moleculer.js microservice (Port 7558)
+
+## Communication Patterns
+
+### 1. Booking → Payment (HTTP)
+```
+[Booking Service] --HTTP POST--> [Payment Service API Gateway]
+```
+
+### 2. Payment → Booking (cervical-spine)
+```
+[Payment Service] --HTTP POST--> [Booking Service cervical-spine]
+```
+
+## Quick Start
+
+### Install Dependencies
+```bash
+npm install
+```
+
+### Start Both Services
+```bash
+# Start both services concurrently
+npm run start:both
+
+# Or start individually
+npm run start:booking  # Terminal 1
+npm run start:payment  # Terminal 2
+```
+
+### Run Integration Tests
+```bash
+npm test
+```
+
+## API Endpoints
+
+### Booking Service (Express + cervical-spine)
+
+**REST API (Port 3000):**
+- `POST /bookings` - Create booking
+- `POST /bookings/:id/pay` - Process payment
+- `GET /bookings/:id` - Get booking
+
+**cervical-spine methods (Port 7557):**
+- `createBooking(data)` - Create new booking
+- `confirmBooking(data)` - Confirm booking with payment
+- `getBooking(data)` - Get booking details
+
+### Payment Service (Moleculer.js)
+
+**HTTP API (Port 7558):**
+- `POST /api/payment/process` - Process payment
+- `GET /api/payment/:id` - Get payment details
+- `POST /api/payment/refund` - Process refund
+
+**Moleculer actions:**
+- `payment.processPayment` - Process payment
+- `payment.getPayment` - Get payment details
+- `payment.refundPayment` - Process refund
+- `payment.callBookingService` - Call booking service methods
+
+## Example Usage
+
+### 1. Create Booking and Payment
+```bash
+# Create booking
+curl -X POST http://localhost:3000/bookings \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"user123","serviceType":"hotel","amount":150.00}'
+
+# Process payment (booking calls payment)
+curl -X POST http://localhost:3000/bookings/1/pay \
+  -H "Content-Type: application/json" \
+  -d '{"paymentMethod":"credit_card"}'
+```
+
+### 2. Process Refund (Payment calls Booking)
+```bash
+curl -X POST http://localhost:7558/api/payment/refund \
+  -H "Content-Type: application/json" \
+  -d '{"paymentId":"pay_123","bookingId":1,"reason":"Cancellation"}'
+```
+
+## Integration Details
+
+### Booking Service calling Payment Service
+The booking service uses standard HTTP requests to call the Moleculer payment service:
+
+```javascript
+const paymentResponse = await axios.post('http://localhost:7558/api/payment/process', {
+  bookingId: booking.id,
+  amount: booking.amount,
+  userId: booking.userId,
+  method: 'credit_card'
+})
+```
+
+### Payment Service calling Booking Service
+The payment service calls cervical-spine endpoints using the cervical-spine protocol:
+
+```javascript
+const bookingResponse = await axios.post('http://localhost:7557/', {
+  name: 'getBooking',
+  data: { bookingId },
+  options: {}
+})
+```
+
+## Key Benefits
+
+1. **Flexibility**: Mix different frameworks in the same system
+2. **Gradual Migration**: Migrate services one at a time
+3. **Best of Both Worlds**: Use cervical-spine's simplicity + Moleculer's features
+4. **Team Autonomy**: Different teams can use their preferred frameworks
+
+## Communication Flow
+
+```
+┌─────────────────┐    HTTP     ┌──────────────────┐
+│ Booking Service │ ──────────► │ Payment Service  │
+│ (Express +      │             │ (Moleculer.js)   │
+│  cervical-spine)│ ◄────────── │                  │
+└─────────────────┘ cervical-   └──────────────────┘
+                    spine
+```
+
+Both services can call each other using their respective protocols, enabling seamless integration between different microservice frameworks.

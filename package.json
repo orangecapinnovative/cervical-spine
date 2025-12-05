@@ -1,33 +1,22 @@
 {
-  "name": "cervical-spine",
-  "version": "0.2.0",
-  "description": "A seamless port from Spinal broker architecture to broker-less DNS-based microservice architecture",
+  "name": "cervical-spine-moleculer-example",
+  "version": "1.0.0",
+  "description": "Example integration of cervical-spine and Moleculer.js",
   "main": "index.js",
-  "repository": "https://github.com/takemetour/cervical-spine.git",
-  "author": "Panjamapong Sermsawatsri <panjmp@gmail.com>",
-  "license": "MIT",
-  "bin": {
-    "cervical-spine": "./bin/cervical-spine"
-  },
   "scripts": {
-    "test": "npx mocha test"
+    "start:booking": "node booking-service.js",
+    "start:payment": "node payment-service.js",
+    "start:both": "concurrently \"npm run start:booking\" \"npm run start:payment\"",
+    "test": "node test-integration.js"
   },
   "dependencies": {
-    "axios": "^0.18.1",
-    "body-parser": "^1.18.0",
-    "commander": "^2.11.0",
-    "debug": "^3.0.1",
-    "express": "^4.15.4",
-    "ioredis": "^3.1.4",
-    "morgan": "^1.8.2",
-    "puid": "^1.0.7"
+    "cervical-spine": "^0.2.0",
+    "express": "^4.18.2",
+    "moleculer": "^0.14.29",
+    "moleculer-web": "^0.10.5",
+    "axios": "^1.6.0"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
-    "mocha": "^3.5.2"
-  },
-  "resolutions": {
-    "diff": "^3.5.0",
-    "growl": "^1.10.0"
+    "concurrently": "^8.2.2"
   }
 }
