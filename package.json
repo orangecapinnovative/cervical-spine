@@ -15,6 +15,7 @@
   "dependencies": {
     "axios": "^0.18.1",
     "body-parser": "^1.18.0",
+    "cls-hooked": "^4.2.2",
     "commander": "^2.11.0",
     "debug": "^3.0.1",
     "express": "^4.15.4",
