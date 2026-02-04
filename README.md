@@ -1,5 +1,7 @@
 # Cervical Spine
 
+> This project use Node 10
+
 A seamless port from [Spinal](https://github.com/jitta/spinal) broker architecture to broker-less DNS-based microservice architecture
 
 This library is used as an intention to remove broker from the system and use HTTP call to DNS-based services instead. Common use-case is [Docker Swarm](https://docs.docker.com/engine/swarm/) and [Kubernetes](https://kubernetes.io/).
