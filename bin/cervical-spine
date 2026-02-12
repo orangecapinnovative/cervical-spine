@@ -57,7 +57,7 @@ program
       options: {}
     }, axiosOptions)
     .then(function(resp) {
-      process.stdout.write(resp.data + '\n')
+      process.stdout.write((typeof resp.data === 'object' ? JSON.stringify(resp.data) : resp.data) + '\n')
       return resp
     })
     .catch(function(err) {

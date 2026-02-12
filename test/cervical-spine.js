@@ -1,6 +1,8 @@
 var Spinal = require('../').Node
 var Broker = require('../').Broker
 var fs = require('fs')
+var tracer = require('../lib/tracer')
+var axios = require('axios')
 
 describe('CervicalSpine', function(){
   var spinal = null
@@ -569,6 +571,111 @@ describe('CervicalSpine', function(){
           expect(err).to.not.exist
           expect(data).to.equal('bar')
           done()
+        })
+      })
+    })
+  })
+  describe('Tracing', function() {
+    var PORT_A = 7560
+    var PORT_B = 7561
+    var PORT_C = 7562
+    var nodeA, nodeB, nodeC
+  
+    afterEach(function(done) {
+      if (nodeA) nodeA.stop(() => {
+        if (nodeB) nodeB.stop(() => {
+          if (nodeC) nodeC.stop(done)
+          else done()
+        })
+        else if (nodeC) nodeC.stop(done)
+        else done()
+      })
+      else if (nodeB) nodeB.stop(() => {
+        if (nodeC) nodeC.stop(done)
+        else done()
+      })
+      else if (nodeC) nodeC.stop(done)
+      else done()
+    })
+
+    it('should propagate traceId across A -> B -> C', function(done) {
+      // Setup Node C (The Leaf)
+      nodeC = new Spinal(`spinal://127.0.0.1:${PORT_C}`, { namespace: 'nodeC' })
+      nodeC.provide('leaf', (data, res) => {
+        // Return the trace ID seen by C
+        const context = tracer.getContext()
+        res.send({ 
+          node: 'C', 
+          traceId: context.traceId,
+          spanId: context.spanId 
+        })
+      })
+
+      // Setup Node B (The Middleman)
+      nodeB = new Spinal(`spinal://127.0.0.1:${PORT_B}`, { namespace: 'nodeB' })
+      nodeB.provide('relay', (data, res) => {
+        // Call C
+        nodeB.call('nodeC.leaf', data, { port: PORT_C }, (err, result) => {
+          if (err) return res.error(err)
+          const context = tracer.getContext()
+          res.send({
+            node: 'B',
+            traceId: context.traceId,
+            child: result
+          })
+        })
+      })
+
+      // Setup Node A (The Entry Point)
+      nodeA = new Spinal(`spinal://127.0.0.1:${PORT_A}`, { namespace: 'nodeA' })
+      nodeA.provide('entry', (data, res) => {
+        // Call B
+        nodeA.call('nodeB.relay', data, { port: PORT_B }, (err, result) => {
+          if (err) return res.error(err)
+          const context = tracer.getContext()
+          res.send({
+            node: 'A',
+            traceId: context.traceId,
+            child: result
+          })
+        })
+      })
+
+      // Start all nodes
+      nodeC.start(() => {
+        nodeB.start(() => {
+          nodeA.start(() => {
+            const traceId = '1234567890abcdef1234567890abcdef' // 32 chars
+            const spanId = '1234567890abcdef'
+            
+            // Call Node A via HTTP to inject the initial header
+            axios.post(`http://127.0.0.1:${PORT_A}`, {
+              name: 'entry',
+              data: {}
+            }, {
+              headers: {
+                'X-Cloud-Trace-Context': `${traceId}/${spanId};o=1`
+              }
+            }).then(resp => {
+              const data = resp.data.data
+              
+              // Verify A
+              assert.equal(data.node, 'A')
+              assert.equal(data.traceId, traceId, 'Node A should have correct traceId')
+              
+              // Verify B
+              assert.deepEqual(data.child.node, 'B')
+              assert.equal(data.child.traceId, traceId, 'Node B should preserve traceId')
+              
+              // Verify C
+              assert.deepEqual(data.child.child.node, 'C')
+              assert.equal(data.child.child.traceId, traceId, 'Node C should preserve traceId')
+              
+              done()
+            }).catch(err => {
+              done(err)
+            })
+          })
         })
       })
     })
